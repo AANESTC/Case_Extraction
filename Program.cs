@@ -8,6 +8,10 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using QuestPDF.Infrastructure;
+
+// ─── QuestPDF License ────────────────────────────────────────────────────────
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,9 +36,13 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICaseRepository, CaseRepository>();
 builder.Services.AddScoped<ICaseService, CaseService>();
 builder.Services.AddScoped<ICaptchaService, CaptchaService>();
+builder.Services.AddScoped<IPdfService, PdfService>();
 
 // ─── eCourts Live Scraper (Singleton — keeps HTTP sessions alive across requests) ─
 builder.Services.AddSingleton<IECourtScraperService, ECourtScraperService>();
+
+// ─── OCR Service (Singleton — stateless, reads tessdata once per engine call) ──
+builder.Services.AddSingleton<IOcrService, OcrService>();
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 builder.Services.AddCors(options =>

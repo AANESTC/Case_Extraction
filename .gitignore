@@ -1,0 +1,8 @@
+bin/
+obj/
+tessdata/
+eng.traineddata
+appsettings.Development.json
+*.user
+*.suo
+*.sln.docstates

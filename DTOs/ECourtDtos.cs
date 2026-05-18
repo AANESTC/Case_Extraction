@@ -5,6 +5,8 @@ namespace ECourtTracker.API.DTOs
     {
         public string SessionId { get; set; } = string.Empty;
         public string CaptchaImageBase64 { get; set; } = string.Empty;
+        /// <summary>Best-effort OCR prediction. Empty string if OCR failed or tessdata missing.</summary>
+        public string PredictedCaptchaText { get; set; } = string.Empty;
     }
 
     // ── Search Request ────────────────────────────────────────────────────────
@@ -18,24 +20,26 @@ namespace ECourtTracker.API.DTOs
     // ── Case Result ───────────────────────────────────────────────────────────
     public class ECourtCaseResultDto
     {
-        public string? CnrNumber        { get; set; }
-        public string? CaseTitle        { get; set; }
-        public string? CaseType         { get; set; }
-        public string? CaseNumber       { get; set; }
-        public string? FilingNumber     { get; set; }
-        public string? FilingDate       { get; set; }
-        public string? RegistrationDate { get; set; }
-        public string? FirstHearingDate { get; set; }
-        public string? NextHearingDate  { get; set; }
-        public string? BusinessOnDate   { get; set; }
-        public string? CaseStatus       { get; set; }
-        public string? CourtEstablishment { get; set; }
-        public string? CourtNumber      { get; set; }
-        public string? JudgeName        { get; set; }
+        public string? CnrNumber           { get; set; }
+        public string? CaseTitle           { get; set; }
+        public string? CaseType            { get; set; }
+        public string? CaseNumber          { get; set; }
+        public string? FilingNumber        { get; set; }
+        public string? FilingDate          { get; set; }
+        public string? RegistrationDate    { get; set; }
+        public string? RegistrationNumber  { get; set; }
+        public string? FirstHearingDate    { get; set; }
+        public string? NextHearingDate     { get; set; }
+        public string? BusinessOnDate      { get; set; }
+        public string? DecisionDate        { get; set; }
+        public string? CaseStatus          { get; set; }
+        public string? CourtEstablishment  { get; set; }
+        public string? CourtNumber         { get; set; }
+        public string? JudgeName           { get; set; }
 
         // Parties
-        public List<string> Petitioners     { get; set; } = new();
-        public List<string> Respondents     { get; set; } = new();
+        public List<string> Petitioners         { get; set; } = new();
+        public List<string> Respondents         { get; set; } = new();
         public List<string> PetitionerAdvocates { get; set; } = new();
         public List<string> RespondentAdvocates { get; set; } = new();
 
@@ -44,11 +48,12 @@ namespace ECourtTracker.API.DTOs
         public string? Respondent       { get; set; }
         public string? AdvocateDetails  { get; set; }
 
-        public List<HearingHistoryDto>     HearingHistory  { get; set; } = new();
-        public List<CaseTransferDto>       CaseTransfers   { get; set; } = new();
-        public List<IAStatusDto>           IAStatus        { get; set; } = new();
-        public List<string>                Orders          { get; set; } = new();
-        public List<string>                Acts            { get; set; } = new();
+        public List<HearingHistoryDto>  HearingHistory { get; set; } = new();
+        public List<CaseTransferDto>    CaseTransfers  { get; set; } = new();
+        public List<IAStatusDto>        IAStatus       { get; set; } = new();
+        public List<ProcessDto>         Processes      { get; set; } = new();
+        public List<string>             Orders         { get; set; } = new();
+        public List<string>             Acts           { get; set; } = new();
     }
 
     public class HearingHistoryDto
@@ -75,6 +80,13 @@ namespace ECourtTracker.API.DTOs
         public string? FilingDate  { get; set; }
         public string? NextDate    { get; set; }
         public string? Status      { get; set; }
+    }
+
+    public class ProcessDto
+    {
+        public string? ProcessId { get; set; }
+        public string? Title     { get; set; }
+        public string? Date      { get; set; }
     }
 
     // ── Generic Error ─────────────────────────────────────────────────────────

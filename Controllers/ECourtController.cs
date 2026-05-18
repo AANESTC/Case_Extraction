@@ -1,6 +1,8 @@
 using ECourtTracker.API.DTOs;
 using ECourtTracker.API.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace ECourtTracker.API.Controllers
 {
@@ -15,12 +17,39 @@ namespace ECourtTracker.API.Controllers
     public class ECourtController : ControllerBase
     {
         private readonly IECourtScraperService _scraper;
+        private readonly IPdfService _pdfService;
         private readonly ILogger<ECourtController> _logger;
+        private readonly ICaseService _caseService;
 
-        public ECourtController(IECourtScraperService scraper, ILogger<ECourtController> logger)
+        public ECourtController(
+            IECourtScraperService scraper, 
+            IPdfService pdfService, 
+            ILogger<ECourtController> logger,
+            ICaseService caseService)
         {
             _scraper = scraper;
+            _pdfService = pdfService;
             _logger  = logger;
+            _caseService = caseService;
+        }
+
+        // ── POST /api/ecourt/download-pdf ─────────────────────────────────────
+        [HttpPost("download-pdf")]
+        public IActionResult DownloadPdf([FromBody] ECourtCaseResultDto caseDetails)
+        {
+            try
+            {
+                _logger.LogInformation("POST /api/ecourt/download-pdf CNR={Cnr}", caseDetails.CnrNumber);
+                var pdfBytes = _pdfService.GenerateCaseReport(caseDetails);
+                
+                var fileName = $"CaseReport_{caseDetails.CnrNumber ?? "Unknown"}_{DateTime.Now:yyyyMMdd}.pdf";
+                return File(pdfBytes, "application/pdf", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Detailed PDF generation error for CNR={Cnr}: {Message}", caseDetails.CnrNumber, ex.Message);
+                return StatusCode(500, new ECourtErrorDto { Error = $"PDF generation failed: {ex.Message}. Check server logs for details." });
+            }
         }
 
         // ── GET /api/ecourt/captcha ───────────────────────────────────────────
@@ -72,6 +101,7 @@ namespace ECourtTracker.API.Controllers
 
         // ── POST /api/ecourt/search ───────────────────────────────────────────
         [HttpPost("search")]
+        [Authorize]
         public async Task<IActionResult> Search([FromBody] ECourtSearchRequestDto request)
         {
             if (string.IsNullOrWhiteSpace(request.SessionId))
@@ -85,6 +115,10 @@ namespace ECourtTracker.API.Controllers
             {
                 _logger.LogInformation("POST /api/ecourt/search CNR={Cnr}", request.CnrNumber);
                 var caseDetails = await _scraper.SearchCaseAsync(request);
+
+                // Save or update case to database
+                await SaveOrUpdateCaseAsync(caseDetails);
+
                 return Ok(caseDetails);
             }
             catch (InvalidOperationException ex) when (ex.Message == "INVALID_CAPTCHA")
@@ -160,6 +194,82 @@ namespace ECourtTracker.API.Controllers
             catch (Exception ex)
             {
                 return Ok(new { exception = ex.GetType().Name, message = ex.Message });
+            }
+        }
+
+        // ── Helper Methods ────────────────────────────────────────────────────
+        
+        private Guid GetCurrentUserId()
+        {
+            var id = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            return Guid.TryParse(id, out var guid) ? guid : Guid.Empty;
+        }
+
+        private DateTime? ParseDate(string? dateStr)
+        {
+            if (string.IsNullOrWhiteSpace(dateStr)) return null;
+            if (DateTime.TryParse(dateStr, out var d)) 
+                return DateTime.SpecifyKind(d, DateTimeKind.Utc);
+            return null;
+        }
+
+        private async Task SaveOrUpdateCaseAsync(ECourtCaseResultDto caseDetails)
+        {
+            if (string.IsNullOrWhiteSpace(caseDetails.CnrNumber)) return;
+
+            var userId = GetCurrentUserId();
+            if (userId == Guid.Empty) return;
+
+            var dto = new UpdateCaseDto
+            {
+                CNRNumber = caseDetails.CnrNumber,
+                CaseTitle = caseDetails.CaseTitle ?? string.Empty,
+                CaseType = caseDetails.CaseType ?? string.Empty,
+                Stage = caseDetails.CaseStatus ?? string.Empty,
+                Status = "Pending",
+                CourtName = caseDetails.CourtEstablishment ?? string.Empty,
+                CourtComplex = string.Empty,
+                JudgeName = caseDetails.JudgeName ?? string.Empty,
+                Petitioner = caseDetails.Petitioner ?? (caseDetails.Petitioners?.FirstOrDefault() ?? string.Empty),
+                Respondent = caseDetails.Respondent ?? (caseDetails.Respondents?.FirstOrDefault() ?? string.Empty),
+                PetitionerAdvocate = caseDetails.AdvocateDetails ?? string.Empty,
+                RespondentAdvocate = string.Empty,
+                FilingNumber = caseDetails.FilingNumber ?? string.Empty,
+                FilingDate = ParseDate(caseDetails.FilingDate),
+                RegistrationNumber = caseDetails.RegistrationNumber ?? string.Empty,
+                RegistrationDate = ParseDate(caseDetails.RegistrationDate),
+                NextHearingDate = ParseDate(caseDetails.NextHearingDate)
+            };
+
+            var existingCase = await _caseService.GetCaseByCnrAsync(dto.CNRNumber);
+            if (existingCase != null)
+            {
+                await _caseService.UpdateCaseAsync(existingCase.Id, dto);
+            }
+            else
+            {
+                var createDto = new CreateCaseDto
+                {
+                    CNRNumber = dto.CNRNumber,
+                    CaseTitle = dto.CaseTitle,
+                    CaseType = dto.CaseType,
+                    Stage = dto.Stage,
+                    Status = dto.Status,
+                    CourtName = dto.CourtName,
+                    CourtComplex = dto.CourtComplex,
+                    JudgeName = dto.JudgeName,
+                    Petitioner = dto.Petitioner,
+                    Respondent = dto.Respondent,
+                    PetitionerAdvocate = dto.PetitionerAdvocate,
+                    RespondentAdvocate = dto.RespondentAdvocate,
+                    FilingNumber = dto.FilingNumber,
+                    FilingDate = dto.FilingDate,
+                    RegistrationNumber = dto.RegistrationNumber,
+                    RegistrationDate = dto.RegistrationDate,
+                    NextHearingDate = dto.NextHearingDate,
+                    AssignedUserId = userId
+                };
+                await _caseService.CreateCaseAsync(createDto, userId);
             }
         }
     }
