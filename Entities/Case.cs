@@ -40,6 +40,9 @@ namespace ECourtTracker.API.Entities
         // Notes
         public string Notes { get; set; } = string.Empty;
 
+        // Raw scraped JSON containing full case details from the eCourts portal
+        public string ScrapedDetailsJson { get; set; } = string.Empty;
+
         // Ownership
         public Guid UserId { get; set; }
         public User User { get; set; } = null!;

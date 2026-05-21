@@ -6,6 +6,7 @@ namespace ECourtTracker.API.DTOs
     {
         public string CNRNumber { get; set; } = string.Empty;
         public string CaseTitle { get; set; } = string.Empty;
+        public string CaseNumber { get; set; } = string.Empty;
         public string CaseType { get; set; } = string.Empty;
         public string Stage { get; set; } = string.Empty;
         public string Status { get; set; } = "Pending";
@@ -27,6 +28,8 @@ namespace ECourtTracker.API.DTOs
         public DateTime? NextHearingDate { get; set; }
 
         public string Notes { get; set; } = string.Empty;
+
+        public string ScrapedDetailsJson { get; set; } = string.Empty;
 
         /// <summary>UserId to assign this case to (admin picks the user).</summary>
         public Guid? AssignedUserId { get; set; }
@@ -74,6 +77,7 @@ namespace ECourtTracker.API.DTOs
 
         public DateTime? NextHearingDate { get; set; }
         public string Notes { get; set; } = string.Empty;
+        public string ScrapedDetailsJson { get; set; } = string.Empty;
 
         public Guid UserId { get; set; }
         public string AssignedUserName { get; set; } = string.Empty;
@@ -89,6 +93,7 @@ namespace ECourtTracker.API.DTOs
         public Guid Id { get; set; }
         public string CNRNumber { get; set; } = string.Empty;
         public string CaseTitle { get; set; } = string.Empty;
+        public string CaseNumber { get; set; } = string.Empty;
         public string CaseType { get; set; } = string.Empty;
         public string Stage { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;

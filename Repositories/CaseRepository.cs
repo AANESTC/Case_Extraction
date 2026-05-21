@@ -22,6 +22,7 @@ namespace ECourtTracker.API.Repositories
             CNRNumber = c.CNRNumber,
             CaseTitle = c.CaseTitle,
             CaseType = c.CaseType,
+            CaseNumber = c.CaseNumber,
             Stage = c.Stage,
             Status = c.Status,
             CourtName = c.CourtName,
@@ -55,6 +56,7 @@ namespace ECourtTracker.API.Repositories
             RegistrationDate = c.RegistrationDate,
             NextHearingDate = c.NextHearingDate,
             Notes = c.Notes,
+            ScrapedDetailsJson = c.ScrapedDetailsJson,
             UserId = c.UserId,
             AssignedUserName = c.User?.FullName ?? string.Empty,
             CreatedAt = c.CreatedAt,
@@ -177,6 +179,7 @@ namespace ECourtTracker.API.Repositories
 
             existing.CNRNumber = updated.CNRNumber;
             existing.CaseTitle = updated.CaseTitle;
+            existing.CaseNumber = updated.CaseNumber;
             existing.CaseType = updated.CaseType;
             existing.Stage = updated.Stage;
             existing.Status = updated.Status;
@@ -193,6 +196,7 @@ namespace ECourtTracker.API.Repositories
             existing.RegistrationDate = updated.RegistrationDate;
             existing.NextHearingDate = updated.NextHearingDate;
             existing.Notes = updated.Notes;
+            existing.ScrapedDetailsJson = updated.ScrapedDetailsJson;
             existing.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();

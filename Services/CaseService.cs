@@ -49,6 +49,7 @@ namespace ECourtTracker.API.Services
                 CNRNumber = dto.CNRNumber,
                 CaseTitle = dto.CaseTitle,
                 CaseType = dto.CaseType,
+                CaseNumber = dto.CaseNumber,
                 Stage = dto.Stage,
                 Status = dto.Status,
                 CourtName = dto.CourtName,
@@ -64,6 +65,7 @@ namespace ECourtTracker.API.Services
                 RegistrationDate = dto.RegistrationDate,
                 NextHearingDate = dto.NextHearingDate,
                 Notes = dto.Notes,
+                ScrapedDetailsJson = dto.ScrapedDetailsJson,
                 UserId = targetUserId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -101,6 +103,7 @@ namespace ECourtTracker.API.Services
                 CNRNumber = dto.CNRNumber,
                 CaseTitle = dto.CaseTitle,
                 CaseType = dto.CaseType,
+                CaseNumber = dto.CaseNumber,
                 Stage = dto.Stage,
                 Status = dto.Status,
                 CourtName = dto.CourtName,
@@ -115,7 +118,8 @@ namespace ECourtTracker.API.Services
                 RegistrationNumber = dto.RegistrationNumber,
                 RegistrationDate = dto.RegistrationDate,
                 NextHearingDate = dto.NextHearingDate,
-                Notes = dto.Notes
+                Notes = dto.Notes,
+                ScrapedDetailsJson = dto.ScrapedDetailsJson
             };
 
             await _caseRepo.UpdateAsync(id, updated);

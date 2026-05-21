@@ -208,9 +208,34 @@ namespace ECourtTracker.API.Controllers
         private DateTime? ParseDate(string? dateStr)
         {
             if (string.IsNullOrWhiteSpace(dateStr)) return null;
-            if (DateTime.TryParse(dateStr, out var d)) 
+
+            // Remove ordinal indicators like 'th', 'st', 'nd', 'rd' from date numbers
+            var cleanedDate = System.Text.RegularExpressions.Regex.Replace(dateStr, @"(?<=\d)(st|nd|rd|th)\b", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+
+            string[] formats = { 
+                "dd-MM-yyyy", "dd/MM/yyyy", "d-M-yyyy", "d/M/yyyy", 
+                "yyyy-MM-dd", "MM/dd/yyyy", "dd-MM-yyyy HH:mm:ss", "dd/MM/yyyy HH:mm:ss", 
+                "dd MMMM yyyy", "dd MMM yyyy", "d MMMM yyyy", "d MMM yyyy",
+                "dd-MM-yyyy hh:mm:ss tt"
+            };
+
+            if (DateTime.TryParseExact(cleanedDate, formats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var exactDate))
+                return DateTime.SpecifyKind(exactDate, DateTimeKind.Utc);
+
+            if (DateTime.TryParse(cleanedDate, System.Globalization.CultureInfo.GetCultureInfo("en-IN"), System.Globalization.DateTimeStyles.None, out var inDate)) 
+                return DateTime.SpecifyKind(inDate, DateTimeKind.Utc);
+
+            if (DateTime.TryParse(cleanedDate, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d)) 
                 return DateTime.SpecifyKind(d, DateTimeKind.Utc);
+
             return null;
+        }
+
+        private string CleanText(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+            var cleaned = text.Replace("&nbsp;", " ").Trim();
+            return (cleaned == "-" || cleaned == "—") ? string.Empty : cleaned;
         }
 
         private async Task SaveOrUpdateCaseAsync(ECourtCaseResultDto caseDetails)
@@ -223,22 +248,24 @@ namespace ECourtTracker.API.Controllers
             var dto = new UpdateCaseDto
             {
                 CNRNumber = caseDetails.CnrNumber,
-                CaseTitle = caseDetails.CaseTitle ?? string.Empty,
-                CaseType = caseDetails.CaseType ?? string.Empty,
-                Stage = caseDetails.CaseStatus ?? string.Empty,
+                CaseTitle = CleanText(caseDetails.CaseTitle),
+                CaseNumber = CleanText(caseDetails.CaseNumber),
+                CaseType = CleanText(caseDetails.CaseType),
+                Stage = CleanText(caseDetails.CaseStatus),
                 Status = "Pending",
-                CourtName = caseDetails.CourtEstablishment ?? string.Empty,
-                CourtComplex = string.Empty,
-                JudgeName = caseDetails.JudgeName ?? string.Empty,
-                Petitioner = caseDetails.Petitioner ?? (caseDetails.Petitioners?.FirstOrDefault() ?? string.Empty),
-                Respondent = caseDetails.Respondent ?? (caseDetails.Respondents?.FirstOrDefault() ?? string.Empty),
-                PetitionerAdvocate = caseDetails.AdvocateDetails ?? string.Empty,
-                RespondentAdvocate = string.Empty,
-                FilingNumber = caseDetails.FilingNumber ?? string.Empty,
+                CourtName = CleanText(caseDetails.CourtEstablishment),
+                CourtComplex = CleanText(caseDetails.CourtNumber),
+                JudgeName = CleanText(caseDetails.JudgeName),
+                Petitioner = CleanText(caseDetails.Petitioner ?? caseDetails.Petitioners?.FirstOrDefault()),
+                Respondent = CleanText(caseDetails.Respondent ?? caseDetails.Respondents?.FirstOrDefault()),
+                PetitionerAdvocate = CleanText(caseDetails.PetitionerAdvocates?.FirstOrDefault() ?? caseDetails.AdvocateDetails),
+                RespondentAdvocate = CleanText(caseDetails.RespondentAdvocates?.FirstOrDefault()),
+                FilingNumber = CleanText(caseDetails.FilingNumber),
                 FilingDate = ParseDate(caseDetails.FilingDate),
-                RegistrationNumber = caseDetails.RegistrationNumber ?? string.Empty,
+                RegistrationNumber = CleanText(caseDetails.RegistrationNumber),
                 RegistrationDate = ParseDate(caseDetails.RegistrationDate),
-                NextHearingDate = ParseDate(caseDetails.NextHearingDate)
+                NextHearingDate = ParseDate(caseDetails.NextHearingDate),
+                ScrapedDetailsJson = System.Text.Json.JsonSerializer.Serialize(caseDetails)
             };
 
             var existingCase = await _caseService.GetCaseByCnrAsync(dto.CNRNumber);
@@ -252,6 +279,7 @@ namespace ECourtTracker.API.Controllers
                 {
                     CNRNumber = dto.CNRNumber,
                     CaseTitle = dto.CaseTitle,
+                    CaseNumber = dto.CaseNumber,
                     CaseType = dto.CaseType,
                     Stage = dto.Stage,
                     Status = dto.Status,
@@ -267,6 +295,7 @@ namespace ECourtTracker.API.Controllers
                     RegistrationNumber = dto.RegistrationNumber,
                     RegistrationDate = dto.RegistrationDate,
                     NextHearingDate = dto.NextHearingDate,
+                    ScrapedDetailsJson = dto.ScrapedDetailsJson,
                     AssignedUserId = userId
                 };
                 await _caseService.CreateCaseAsync(createDto, userId);
